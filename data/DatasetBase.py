@@ -11,6 +11,18 @@ class DatasetBase:
         self.__data_label = pd.DataFrame()
         self.__file_path = file_path
 
+    def file_path(self):
+        return self.__file_path
+
+    def set_data(self, data):
+        self.__data = data
+
+    def set_data_label(self, data_label):
+        self.__data_label = data_label
+
+    def set_file_path(self, file_path):
+        self.__file_path = file_path
+
     def get_pandas_data(self):
         return self.__data
 
