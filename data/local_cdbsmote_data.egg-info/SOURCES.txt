@@ -1,0 +1,5 @@
+setup.py
+local_cdbsmote_data.egg-info/PKG-INFO
+local_cdbsmote_data.egg-info/SOURCES.txt
+local_cdbsmote_data.egg-info/dependency_links.txt
+local_cdbsmote_data.egg-info/top_level.txt
