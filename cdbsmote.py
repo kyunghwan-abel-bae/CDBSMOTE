@@ -15,6 +15,55 @@ from mpl_toolkits.mplot3d import Axes3D
 from data.DataStars import *
 
 
+def calc_macro_average(list_data):
+    ''' getting a macro average for a precision and a recall
+
+    :param list_data: [[elem1, elem2, elem3], [elem4, elem5, elem6], ...]
+    :return:
+    '''
+
+    if len(list_data) == 0:
+        return None
+
+    total = 0
+    for index, list_row in enumerate(list_data):
+        tp = 0
+        fp = 0
+        for r_index, data in enumerate(list_row):
+            if index == r_index:
+                tp = data
+            else:
+                fp = fp + data
+
+        if (tp + fp) != 0:
+            total = total + (tp/(tp+fp))
+
+    result = total / len(list_data)
+
+    return result
+
+
+def calc_f1_score_for_dbscan_result(pd_table):
+    ''' calculate a f1-score for a pandas table
+
+    :param pd_table: a pandas table for a confusion matrix
+    :return:
+    '''
+
+    list_row_data = pd_table.values.tolist()
+    calculated_recall = calc_macro_average(list_row_data)
+
+    # Transposition and store data as a list
+    list_col_data = [pd_table[n].tolist() for n in np.arange(0, len(pd_table.columns))]
+    calculated_precision = calc_macro_average(list_col_data)
+
+    calculated_f1_score = -1
+    if calculated_precision > 0 and calculated_recall > 0:
+        calculated_f1_score = 2 * (calculated_precision * calculated_recall) / (calculated_precision + calculated_recall)
+
+    return calculated_f1_score
+
+
 def plot_3rd_pca(graph, title, df_data, df_label):
     ''' plotting multidimensional data as a 3rd dimension graph
 
@@ -52,6 +101,17 @@ def plot_3rd_pca(graph, title, df_data, df_label):
 
 ########## TARGET DATA
 obj_data = DataStars('csv/Stars.csv')
+# obj_data = DataGlass('glass.csv')
+# obj_data = DataIris('Iris.csv')
+# obj_data = DataBreastCancerDiagnostic('breast_cancer_diagnostic.csv')
+# obj_data = DataWineQualityRed('winequality-red.csv')
+# obj_data = DataZoo('zoo.csv') # NO BORDER DATA
+# obj_data = DataBFOP('biomechanical_features_of_orthopedic_patients.csv')
+# obj_data = DataAbalone('abalone_original.csv') # too many classes
+# obj_data = DataBank('BankNoteAuthentication.csv')
+# obj_data = DataDiabetes('diabetes.csv')
+# obj_data = DataDryBean('Dry_Bean.csv')
+# obj_data = DataHeart('heart.csv')
 
 df = obj_data.get_pandas_data()
 df_label = obj_data.get_pandas_data_label()
