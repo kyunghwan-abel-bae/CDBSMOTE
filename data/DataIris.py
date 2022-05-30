@@ -1,7 +1,3 @@
-
-import pandas as pd
-import numpy as np
-
 from DatasetBase import *
 
 dict_code_species = {
@@ -10,17 +6,17 @@ dict_code_species = {
     'Iris-virginica': 2,
 }
 
-# del Id
-# Change Species to labels
-
 class DataIris(DatasetBase):
+    """ For handling data(UCI Repository of Machine Learning Databases [Online] - https://archive.ics.uci.edu/ml/index.php)
+    """
+
     def __init__(self, file_path):
         super(DataIris, self).__init__(file_path)
 
         self.init()
 
     def init(self):
-        data = pd.read_csv(self.file_path_)
+        data = pd.read_csv(self.file_path())
 
         list_str_species = data['Species'].to_list()
         list_code_species = []
@@ -42,5 +38,5 @@ class DataIris(DatasetBase):
         del data['Species']
         del data['Species_Code']
 
-        self.data_ = self.normalize_data(data)
-        self.data_label_ = label.rename('labels')
+        self.set_data(self.normalize_data(data))
+        self.set_data_label(label.rename('labels'))

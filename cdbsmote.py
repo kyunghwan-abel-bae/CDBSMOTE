@@ -13,6 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # Data processing
 from data.DataStars import *
+from data.DataGlass import *
 
 
 def calc_macro_average(list_data):
@@ -101,17 +102,17 @@ def plot_3rd_pca(graph, title, df_data, df_label):
 
 ########## TARGET DATA
 obj_data = DataStars('csv/Stars.csv')
-# obj_data = DataGlass('glass.csv')
-# obj_data = DataIris('Iris.csv')
-# obj_data = DataBreastCancerDiagnostic('breast_cancer_diagnostic.csv')
-# obj_data = DataWineQualityRed('winequality-red.csv')
-# obj_data = DataZoo('zoo.csv') # NO BORDER DATA
-# obj_data = DataBFOP('biomechanical_features_of_orthopedic_patients.csv')
+# obj_data = DataGlass('csv/glass.csv')
+# obj_data = DataIris('csv/Iris.csv')
+# obj_data = DataBreastCancerDiagnostic('csv/breast_cancer_diagnostic.csv')
+# obj_data = DataWineQualityRed('csv/winequality-red.csv')
+# obj_data = DataZoo('csv/zoo.csv') # NO BORDER DATA
+# obj_data = DataBFOP('csv/biomechanical_features_of_orthopedic_patients.csv')
 # obj_data = DataAbalone('csv/abalone_original.csv') # too many classes
-# obj_data = DataBank('BankNoteAuthentication.csv')
-# obj_data = DataDiabetes('diabetes.csv')
-# obj_data = DataDryBean('Dry_Bean.csv')
-# obj_data = DataHeart('heart.csv')
+# obj_data = DataBank('csv/BankNoteAuthentication.csv')
+# obj_data = DataDiabetes('csv/diabetes.csv')
+# obj_data = DataDryBean('csv/Dry_Bean.csv')
+# obj_data = DataHeart('csv/heart.csv')
 
 df = obj_data.get_pandas_data()
 df_label = obj_data.get_pandas_data_label()

@@ -81,13 +81,16 @@ dict_code_class = {
 
 
 class DataDiabetes(DatasetBase):
+    """ For handling data(UCI Repository of Machine Learning Databases [Online] - https://archive.ics.uci.edu/ml/index.php)
+    """
+
     def __init__(self, file_path):
         super(DataDiabetes, self).__init__(file_path)
 
         self.init()
 
     def init(self):
-        data = pd.read_csv(self.file_path_)
+        data = pd.read_csv(self.file_path())
 
         list_str_Gender = data['Gender'].to_list()
         list_str_Polyuria = data['Polyuria'].to_list()
@@ -273,5 +276,5 @@ class DataDiabetes(DatasetBase):
         del data['Obesity']
         del data['class']
 
-        self.data_ = self.normalize_data(data)
-        self.data_label_ = label.rename('labels')
+        self.set_data(self.normalize_data(data))
+        self.set_data_label(label.rename('labels'))
