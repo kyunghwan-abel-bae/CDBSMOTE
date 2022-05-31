@@ -99,6 +99,10 @@ def plot_3rd_pca(graph, title, df_data, df_label):
     graph.set_zlabel('pca_component_3')
     graph.set_title(title)
 
+################ GROUP DECLARED
+
+group_dt = GroupDecisionTree()
+group_dbscan = GroupDBSCAN()
 
 ########## TARGET DATA
 obj_data = DataStars('csv/Stars.csv')
@@ -137,22 +141,29 @@ for column in list_columns:
     list_columns_min.append(min(data_column))
 
 ################ EXPERT GROUP(A) - DECISION TREE
+df_x_train, df_x_test, df_y_train, df_y_test = train_test_split(df, df_label, test_size=0.3, random_state=11)
+df_x_test, df_x_quiz, df_y_test, df_y_quiz = train_test_split(df_x_test, df_y_test, test_size=0.3, random_state=11)
 
-X_train, X_test, y_train, y_test = train_test_split(df, df_label, test_size=0.3, random_state=11)
+df_x_train = df_x_train.reset_index(drop=True)
+df_x_test = df_x_test.reset_index(drop=True)
+df_x_quiz = df_x_quiz.reset_index(drop=True)
 
-X_train = X_train.reset_index(drop=True)
-y_train = y_train.reset_index(drop=True)
-X_test = X_test.reset_index(drop=True)
-y_test = y_test.reset_index(drop=True)
+df_y_train = df_y_train.reset_index(drop=True)
+df_y_test = df_y_test.reset_index(drop=True)
+df_y_quiz = df_y_quiz.reset_index(drop=True)
+
 
 tree = DecisionTreeClassifier(max_depth=4, random_state=0)
 
-tree.fit(X_train, y_train)
+tree.fit(df_x_train, df_y_train)
 print("======================")
 print("PURE DECISION TREE")
 print("[Tree] Accuracy for the train set: {:.3f}".format(tree.score(X_train, y_train)))
 print("[Tree] Accuracy for the test set: {:.3f}".format(tree.score(X_test, y_test)))
 print("======================")
+
+quit()
+
 
 fig = plt.figure(figsize=(15,7))
 first_graph = fig.add_subplot(221, projection='3d')
