@@ -10,6 +10,8 @@ CDBSMOTE(=Class and Density Based Synthetic Minority Oversampling Technique) is 
 <img src="img/Result.png">
 </p>
 
+## Result
+
 ## Branch
 * report-kips : the result of a paper for 'Korea Information Processing Society'
 * report-pknu : the result of masters degree report at the Pukyong National University

@@ -1,15 +1,15 @@
-import pandas as pd
-import numpy as np
-
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.cluster import DBSCAN
-
-from sklearn.model_selection import train_test_split
+import itertools
 
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+
 from sklearn.decomposition import PCA
-from mpl_toolkits.mplot3d import Axes3D
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Expert groups
+from group.GroupDecisionTree import *
+from group.GroupDBSCAN import *
 
 # Data processing
 from data.DataStars import *
@@ -99,6 +99,10 @@ def plot_3rd_pca(graph, title, df_data, df_label):
     graph.set_zlabel('pca_component_3')
     graph.set_title(title)
 
+'''
+######################################################
+(A)
+'''
 ################ GROUP DECLARED
 
 group_dt = GroupDecisionTree()
@@ -152,125 +156,141 @@ df_y_train = df_y_train.reset_index(drop=True)
 df_y_test = df_y_test.reset_index(drop=True)
 df_y_quiz = df_y_quiz.reset_index(drop=True)
 
-
-tree = DecisionTreeClassifier(max_depth=4, random_state=0)
-
-tree.fit(df_x_train, df_y_train)
-print("======================")
-print("PURE DECISION TREE")
-print("[Tree] Accuracy for the train set: {:.3f}".format(tree.score(X_train, y_train)))
-print("[Tree] Accuracy for the test set: {:.3f}".format(tree.score(X_test, y_test)))
-print("======================")
-
-quit()
-
-
-fig = plt.figure(figsize=(15,7))
-first_graph = fig.add_subplot(221, projection='3d')
-
-title_first_graph = "DECISION TREE(Accuracy : {:.3f})".format(tree.score(X_test, y_test))
-
-plot_3rd_pca(first_graph, title_first_graph, X_train, y_train)
-
-################ EXPERT GROUP(B) - DBSCAN
-df_y_train = pd.DataFrame(y_train)
-df_y_train.columns = ['labels']
-
-list_labels = df_y_train.drop_duplicates('labels')['labels'].tolist()
-num_labels = len(list_labels)
-
-count_min_category = df_y_train['labels'].value_counts().min()
-
-eps_data = obj_data.get_dummy_eps_data()
-
-if count_min_category > 3:
-    min_samples_data = np.arange(3, (count_min_category+1), 1)
-else:
-    min_samples_data = [3]
+group_dt.set_data(df_x_train, df_y_train)
+group_dbscan.set_data(df_x_train)
 
 '''
-Finding proper eps and min_samples
-- min_samples : high -> low
-- eps : narrow -> wide
+######################################################
+(B)
 '''
-result_dbscan = None
 
-# find a first cluster which fits to the data classes
-for m in reversed(min_samples_data):
-    for e in eps_data:
-        # DBSCAN Options
-        model = DBSCAN(eps=e, min_samples=m)
-        # model = DBSCAN(eps=e, min_samples=m, algorithm='auto', metric="dice", leaf_size=90, p=2)
-        # model = DBSCAN(eps=e, min_samples=m, algorithm='auto', metric="rogerstanimoto", leaf_size=90, p=2)
-        # model = DBSCAN(eps=e, min_samples=m, algorithm='auto', metric="sokalmichener", leaf_size=90, p=2)
-        # model = DBSCAN(eps=e, min_samples=m, algorithm='auto', metric="sokalsneath", leaf_size=90, p=2)
-        predict = pd.DataFrame(model.fit_predict(X_train))
-        predict_duplication_dropped = predict.drop_duplicates()
-        if len(predict_duplication_dropped) == (num_labels+1):
-            result_dbscan = predict
-            print("--FOUND CLUSTER--")
-            print("e : ", e, "min_samples : ", m)
-            break
+# group_dt.train(1)
+# group_dbscan.train(0.1, 3)
 
-    if result_dbscan is not None:
-        break
 
-if result_dbscan is None:
-    print("--DBSCAN Failed--")
+'''
+######################################################
+(C)
+'''
+
+random_df_x_train = df_x_train.sample(frac=0.3, random_state=60)
+random_df_y_train = df_y_train.loc[random_df_x_train.index.tolist()]
+
+df_x_quiz = pd.concat([df_x_quiz, random_df_x_train])
+df_y_quiz = pd.concat([df_y_quiz, random_df_y_train])
+
+df_x_quiz = df_x_quiz.reset_index(drop=True)
+df_y_quiz = df_y_quiz.reset_index(drop=True)
+
+group_dt.quiz1_optimize(df_x_quiz, df_y_quiz)
+group_dbscan.quiz1_optimize(df_x_quiz, df_y_quiz)
+
+fig = plt.figure(figsize=(15, 7))
+
+first_graph = fig.add_subplot(121, projection='3d')
+plot_3rd_pca(first_graph, "Expert Group(A)", group_dt.df_x_train(), group_dt.df_predict())
+
+'''
+######################################################
+(D) Mutual teaching
+'''
+
+list_border = group_dbscan.list_border()
+list_cluster = group_dbscan.list_cluster()
+
+f1_score_max = -1
+table_f1_score_max = pd.DataFrame()
+cluster_score_max = pd.DataFrame()
+border_score_max = pd.DataFrame()
+
+df_dt_y_predict = group_dt.df_predict().copy()
+for index_cluster, cluster in enumerate(list_cluster):
+    temp_y_predict = df_dt_y_predict.copy()
+    temp_y_predict = temp_y_predict.loc[cluster.index]
+
+    temp_cluster_predict = cluster['predict']
+
+    temp_y_predict = temp_y_predict.reset_index(drop=True)
+    temp_cluster_predict = temp_cluster_predict.reset_index(drop=True)
+
+    c_table = confusion_matrix(temp_y_predict, temp_cluster_predict)
+    pd_table = pd.DataFrame(c_table)
+    pd_table_columns = list(pd_table.columns.values)
+
+    for temp_column in list(itertools.permutations(pd_table_columns, len(pd_table_columns))):
+        pd_table = pd_table[list(temp_column)]
+        temp_f1_score = calc_f1_score_for_dbscan_result(pd_table)
+
+        if temp_f1_score > f1_score_max:
+            table_f1_score_max = pd_table.copy()
+            f1_score_max = temp_f1_score
+            cluster_score_max = cluster.copy()
+            border_score_max = list_border[index_cluster]
+
+print("Best matching cluster - f1 score : ", f1_score_max)
+print("Best matching cluster - table : ")
+print(table_f1_score_max)
+print("Best matching cluster : ")
+print(cluster_score_max)
+
+if len(border_score_max) == 0:
+    print("[ABORTED] Best matching cluster has no border data")
     quit()
 
-result_dbscan.columns = ['predict']
+border_score_max_labels = df_dt_y_predict.loc[border_score_max.index.values.tolist()]
+border_score_max_labels.columns = ['labels']
 
-########## FINDING BORDER ITEMS AT THE EACH CLUSTERS
-not_noisy_data = result_dbscan.loc[result_dbscan['predict'] != -1]
-indices_core = model.core_sample_indices_
-indices_border = list(not_noisy_data.index.difference(indices_core))
+cluster_score_max_labels = df_dt_y_predict.loc[cluster_score_max.index.values.tolist()]
+cluster_score_max_labels.columns = ['labels']
 
-if len(indices_border) == 0:
-    print("--NO BORDER ITEM--")
-    quit()
+border_score_max = pd.concat([border_score_max, border_score_max_labels], axis=1)
+cluster_score_max = pd.concat([cluster_score_max, cluster_score_max_labels], axis=1)
 
-X_train_border = X_train.loc[indices_border]
-y_train_border = y_train.loc[indices_border]
-predict_border = not_noisy_data.loc[indices_border]
+border_score_max = border_score_max.reset_index()
 
-data_border = pd.concat([X_train_border, y_train_border, predict_border], axis=1)
-data_border = data_border.reset_index()
+num_cluster = len(cluster_score_max['predict'].drop_duplicates())
 
-data_not_noisy = pd.concat([X_train, y_train, result_dbscan], axis=1)
-data_not_noisy = data_not_noisy.loc[data_not_noisy['predict'] != -1]
+data_temp = cluster_score_max.groupby('predict')
+list_data_not_noisy_clusters = [data_temp.get_group(x).reset_index() for x in data_temp.groups]
 
-data_not_noisy_X = data_not_noisy[list_columns]
-data_not_noisy_predict = data_not_noisy[['predict']]
+################ LABELING THE FOUND CLUSTERS
+df_dbscan_predict = cluster_score_max['predict']
 
-second_graph = fig.add_subplot(222, projection='3d')
-plot_3rd_pca(second_graph, "DBSCAN(without noise)", data_not_noisy_X, data_not_noisy_predict)
+list_columns_table_f1_score_max = table_f1_score_max.columns.values.tolist()
+list_dbscan_label = df_dbscan_predict.values.flatten().tolist()
+for index_dbscan_predict, elem_dbscan_predict in enumerate(list_dbscan_label):
+    list_dbscan_label[index_dbscan_predict] = list_columns_table_f1_score_max.index(elem_dbscan_predict)
+
+df_dbscan_label = pd.DataFrame(list_dbscan_label)
+
+del cluster_score_max['predict']
+df_dbscan_x = cluster_score_max
+
+second_graph = fig.add_subplot(122, projection='3d')
+plot_3rd_pca(second_graph, "Expert Group(B)", df_dbscan_x, df_dbscan_label)
+
 
 ################ DATA AUGMENTATION PROCESS(1) ~ Finding the closest item of the each cluster at the border data
-data_temp = data_not_noisy.groupby('predict')
-list_found_clusters = [data_temp.get_group(x).reset_index() for x in data_temp.groups]
-
 dict_closest_data = {}
 
 index_border = 0
-while index_border <= data_border.index[-1]:
+while index_border <= border_score_max.index[-1]:
     list_closest_data = []
-    for cluster in list_found_clusters:
+    for cluster in list_data_not_noisy_clusters:
         index_row = 0
-        if cluster.loc[index_row, 'predict'] == data_border.loc[index_border, 'predict']:
+        if cluster.loc[index_row, 'predict'] == border_score_max.loc[index_border, 'predict']:
             index_row = index_row + 1
         else:
-            shortest_dist = int(2147483647) # maximum integer value
-
-            index_shortest_dist_row = -1
+            shortest_dist = int(2147483647)
+            index_shorteds_dist_row = -1
 
             while index_row <= cluster.index[-1]:
                 dist_total = 0
                 for index, column in enumerate(list_columns):
-                    if column[len(column) - 5:] == "_Code":
+                    if column[len(column) - 5:] == "_Code" or column == "labels":
                         continue
 
-                    dist = cluster.loc[index_row, column] - data_border.loc[index_border, column]
+                    dist = abs(cluster.loc[index_row, column] - border_score_max.loc[index_border, column])
                     dist_total = dist_total + dist
 
                 if dist_total < shortest_dist:
@@ -281,10 +301,131 @@ while index_border <= data_border.index[-1]:
 
             list_closest_data.append(cluster.loc[index_shortest_dist_row])
 
-    dict_closest_data[data_border.loc[index_border, 'index']] = list_closest_data
+    dict_closest_data[border_score_max.loc[index_border, 'index']] = list_closest_data
     index_border = index_border + 1
 
+
 ################ DATA AUGMENTATION PROCESS(2) ~ Data augemtation using closest items
+list_augmented_container = []
+list_total_container = []
+
+list_key_closest_data = list(dict_closest_data.keys())
+df_augmented_data = pd.DataFrame()
+
+list_closest_data_labels = []
+
+# The key below is the index of borders. border items are important because the data is augmented in every border items
+# So, the below loop makes the sum of the closest items properties, and the case of code items is just an appended list
+# Plus, the label of the closest data are stored as a list
+# result : list_total_container, list_closest_data_labels
+for key in list_key_closest_data:
+    list_cluster_closest_data = dict_closest_data[key]
+
+    list_cluster_closest_data_code_total = []
+    list_cluster_closest_data_not_code_total = []
+    for index, column in enumerate(list_columns):
+        if column[len(column) - 5:] == "_Code":
+            list_cluster_closest_data_code_total.append([])
+        else:
+            list_cluster_closest_data_not_code_total.append(0)
+
+    list_closest_data_labels_temp = []
+    for closest_data in list_cluster_closest_data:
+        count_code = 0
+        count_not_code = 0
+
+        for column in list_columns:
+            if column[len(column) - 5:] == "_Code":
+                list_cluster_closest_data_code_total[count_code].append(closest_data.loc[column])
+                count_code = count_code + 1
+            else:
+                list_cluster_closest_data_not_code_total[count_not_code] = \
+                    list_cluster_closest_data_not_code_total[count_not_code] + closest_data.loc[column]
+                count_not_code = count_not_code + 1
+
+        list_closest_data_labels_temp.append([closest_data['labels']])
+
+    list_closest_data_labels_temp = sum(list_closest_data_labels_temp, [])
+    list_closest_data_labels.append(list_closest_data_labels_temp)
+
+    list_temp = []
+    count_code = 0
+    count_not_code = 0
+    for column in list_columns:
+        if column[len(column) - 5:] == "_Code":
+            list_temp.append(list_cluster_closest_data_code_total[count_code])
+            count_code = count_code + 1
+        else:
+            list_temp.append(list_cluster_closest_data_not_code_total[count_not_code])
+            count_not_code = count_not_code + 1
+
+    list_total_container.append(list_temp)
+
+# properties of data augmentation are prepared at the 'list_augmented_container'
+for list_total in list_total_container:
+    list_temp = []
+
+    for index, column in enumerate(list_columns):
+        if column[len(column) - 5:] == "_Code":
+            # MAX COUNT
+            list_total[index] = int(max(list_total[index], key=list_total[index].count))
+        else:
+            divisor = num_cluster
+            if divisor < 1:
+                print("[ABORTED] The number of cluster is zero")
+                quit()
+            # AVERAGE
+            list_total[index] = list_total[index] / divisor
+
+    list_augmented_container.append(list_total)
+
+# labels of data augmentation are prepared at the 'list_augmented_labels'
+list_augmented_labels = []
+
+count = 0
+list_index_excluded = []
+for index_closest_data_labels, closest_data_labels in enumerate(list_closest_data_labels):
+    # NOTE : closet_data_labels are also list
+    label_min = None
+    count_min = int(2147483647)
+
+    df_value_counts = pd.DataFrame(closest_data_labels).value_counts()
+    df_value_counts = df_value_counts.sort_values()
+
+    df_index_value_counts = df_value_counts.sort_values().index.to_frame(index=False)
+
+    list_df_value_counts = df_value_counts.values.tolist()
+    list_df_index_counts = df_index_value_counts.values.flatten().tolist()
+
+    list_temp_indices_need_to_check = []
+
+    # Neighbours might be consist of [2, 1, 3, 4, 5, 5]. In this case, labels(2, 1, 3, 4) are needed to check
+    for index, item in enumerate(list_df_value_counts):
+        if list_df_value_counts[0] == item: # list_df_value_counts[0] ~ minimum counts among the neighbours
+            list_temp_indices_need_to_check.append(list_df_index_counts[index])
+
+    label_min_final_count = int(2147483647)
+    label_min_chosen = None
+    # Among labels(2, 1, 3, 4), which label has the least count.
+    for label_min in list_temp_indices_need_to_check:
+        if dict_labels_value_counts[label_min] < label_min_final_count:
+            label_min_chosen = label_min
+            label_min_final_count = dict_labels_value_counts[label_min]
+
+    # Final chosen label might be the most count of labels.
+    # In this case, this item(value+label) should be excluded.
+    if label_min_final_count == max(dict_labels_value_counts.values()):
+        if min(dict_labels_value_counts.values()) != max(dict_labels_value_counts.values()): # when label counts are balanced
+            list_index_excluded.append(index_closest_data_labels)
+            continue
+
+    dict_labels_value_counts[label_min_chosen] = dict_labels_value_counts[label_min_chosen] + 1
+    list_augmented_labels.append(label_min_chosen)
+
+quit()
+
+
+# properties of data augmentation are prepared at the 'list_augmented_container'
 list_augmented_container = []
 list_total_container = []
 
