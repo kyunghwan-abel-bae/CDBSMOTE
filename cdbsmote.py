@@ -14,7 +14,16 @@ from group.GroupDBSCAN import *
 # Data processing
 from data.DataStars import *
 from data.DataGlass import *
-
+from data.DataIris import *
+from data.DataBFOP import *
+from data.DataBreastCancerDiagnostic import *
+from data.DataWineQualityRed import *
+from data.DataZoo import *
+from data.DataAbalone import *
+from data.DataBank import *
+from data.DataDiabetes import *
+from data.DataDryBean import *
+from data.DataHeart import *
 
 def calc_macro_average(list_data):
     ''' getting a macro average for a precision and a recall
@@ -182,8 +191,8 @@ df_y_quiz = pd.concat([df_y_quiz, random_df_y_train])
 df_x_quiz = df_x_quiz.reset_index(drop=True)
 df_y_quiz = df_y_quiz.reset_index(drop=True)
 
-group_dt.quiz1_optimize(df_x_quiz, df_y_quiz)
-group_dbscan.quiz1_optimize(df_x_quiz, df_y_quiz)
+group_dt.quiz_optimize(df_x_quiz, df_y_quiz)
+group_dbscan.quiz_optimize(df_x_quiz, df_y_quiz)
 
 fig = plt.figure(figsize=(15, 7))
 
@@ -422,120 +431,35 @@ for index_closest_data_labels, closest_data_labels in enumerate(list_closest_dat
     dict_labels_value_counts[label_min_chosen] = dict_labels_value_counts[label_min_chosen] + 1
     list_augmented_labels.append(label_min_chosen)
 
-quit()
+
+# filtering data using list_index_excluded
+index_excluded = 0
+list_filtered_augmented_container = []
+for index_filetered_augmented_container, augmented_container in enumerate(list_augmented_container):
+    if index_excluded != len(list_index_excluded):
+        if list_index_excluded[index_excluded] == index_filetered_augmented_container:
+            index_excluded = index_excluded + 1
+            continue
+
+    list_filtered_augmented_container.append(augmented_container)
 
 
-# properties of data augmentation are prepared at the 'list_augmented_container'
-list_augmented_container = []
-list_total_container = []
-
-list_key_closest_data = list(dict_closest_data.keys())
-df_augmented_data = pd.DataFrame()
-
-list_closest_data_labels = []
-
-# The key below is the index of borders. border items are important because the data is augmented in every border items
-# So, the below loop makes the sum of the closest items properties, and the case of code items is just an appended list
-# Plus, the label of the closest data are stored as a list
-# result : list_total_container, list_closest_data_labels
-for key in list_key_closest_data:
-    list_cluster_closest_data = dict_closest_data[key]
-
-    list_cluster_closest_data_code_total = []
-    list_cluster_closest_data_not_code_total = []
-    for index, column in enumerate(list_columns):
-        if column[len(column) - 5:] == "_Code":
-            list_cluster_closest_data_code_total.append([])
-        else:
-            list_cluster_closest_data_not_code_total.append(0)
-
-    list_closest_data_labels_temp = []
-    for closest_data in list_cluster_closest_data:
-        count_code = 0
-        count_not_code = 0
-
-        for column in list_columns:
-            if column[len(column) - 5:] == "_Code":
-                list_cluster_closest_data_code_total[count_code].append(closest_data.loc[column])
-                count_code = count_code + 1
-            else:
-                list_cluster_closest_data_not_code_total[count_not_code] = list_cluster_closest_data_not_code_total[count_not_code] + closest_data.loc[column]
-                count_not_code = count_not_code + 1
-
-        list_closest_data_labels_temp.append(closest_data['labels'])
-
-    list_closest_data_labels.append(list_closest_data_labels_temp)
-
-    list_temp = []
-    count_code = 0
-    count_not_code = 0
-    for column in list_columns:
-        if column[len(column) - 5:] == "_Code":
-            list_temp.append(list_cluster_closest_data_code_total[count_code])
-            count_code = count_code + 1
-        else:
-            list_temp.append(list_cluster_closest_data_not_code_total[count_not_code])
-            count_not_code = count_not_code + 1
-
-    list_total_container.append(list_temp)
-
-# properties of data augmentation are prepared at the 'list_augmented_container'
-list_augmented_container = []
-for list_total in list_total_container:
-    list_temp = []
-
-    for index, column in enumerate(list_columns):
-        if column[len(column) - 5:] == "_Code":
-            list_total[index] = int(max(list_total[index], key=list_total[index].count))
-        else:
-            divisor = (len(list_found_clusters)-1)
-            if divisor == 0:
-                divisor = 1
-            list_total[index] = list_total[index] / divisor
-
-    list_augmented_container.append(list_total)
-
-df_augmented_data = pd.DataFrame(list_augmented_container, columns=list_columns)
-
-# labels of data augmentation are prepared at the 'list_augmented_container'
-list_augmented_labels = []
-for closest_data_labels in list_closest_data_labels:
-    label_min = None
-    count_min = int(2147483647) # maximum integer value
-    for label_item in closest_data_labels:
-        label_item = int(label_item)
-        if dict_labels_value_counts[label_item] < count_min:
-            count_min = dict_labels_value_counts[label_item]
-            label_min = label_item
-
-    dict_labels_value_counts[label_min] = dict_labels_value_counts[label_min] + 1
-    list_augmented_labels.append(label_min)
-
+df_augmented_data = pd.DataFrame(list_filtered_augmented_container, columns=list_columns)
 df_augmented_data_label = pd.DataFrame(list_augmented_labels)
 
-X_train_augmented = pd.concat([X_train, df_augmented_data])
-y_train_augmented = pd.concat([y_train, df_augmented_data_label])
+X_train_augmented = pd.concat([df_x_train, df_augmented_data])
+y_train_augmented = pd.concat([df_y_train, df_augmented_data_label])
 
 X_train_augmented = X_train_augmented.reset_index(drop=True)
 y_train_augmented = y_train_augmented.reset_index(drop=True)
 
-third_graph = fig.add_subplot(223, projection='3d')
-third_graph.set_title("AUGMENTED")
 
-plot_3rd_pca(third_graph, "AUGMENTED", X_train_augmented, y_train_augmented)
-
-################ RESULT - DECISION TREE WITH AUGMENTED DATA
-tree.fit(X_train_augmented, y_train_augmented)
 print("======================")
-print("DECISION TREE(with augmented data)")
-print("[Tree] Accuracy for the train set: {:.3f}".format(tree.score(X_train_augmented, y_train_augmented)))
-print("[Tree] Accuracy for the test set: {:.3f}".format(tree.score(X_test, y_test)))
+print("DECISION TREE")
+print("[ORIGINAL] Accuracy for the test set: {:.3f}".format(group_dt.score(df_x_test, df_y_test)))
+
+group_dt.set_data(X_train_augmented, y_train_augmented)
+group_dt.quiz_optimize(df_x_quiz, df_y_quiz)
+
+print("[AUGMENTED] Accuracy for the test set: {:.3f}".format(group_dt.score(df_x_test, df_y_test)))
 print("======================")
-
-fourth_graph = fig.add_subplot(224, projection='3d')
-
-title_fourth_graph = "RESULT(Accuracy : {:.3f})".format(tree.score(X_test, y_test))
-
-plot_3rd_pca(fourth_graph, title_fourth_graph, X_test, y_test)
-
-plt.show()

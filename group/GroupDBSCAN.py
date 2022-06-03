@@ -87,7 +87,7 @@ class GroupDBSCAN:
 
         return pd.DataFrame(self.__dbscan.fit_predict(self.__df_x_train))
 
-    def quiz1_optimize(self, df_x_quiz, df_y_quiz):
+    def quiz_optimize(self, df_x_quiz, df_y_quiz):
         ''' found all clusters which meet the number of labels(of df_y_quiz)
 
         :param df_x_quiz:

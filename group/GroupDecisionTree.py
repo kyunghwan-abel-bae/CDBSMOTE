@@ -105,7 +105,7 @@ class GroupDecisionTree:
         '''
         return self.__tree.score(df_x, df_y)
 
-    def quiz1_optimize(self, df_x_quiz, df_y_quiz):
+    def quiz_optimize(self, df_x_quiz, df_y_quiz):
         ''' optimize a stored decision tree using quiz data. As a result, it has an optimized max depth for decision tree
 
         :param df_x_quiz:
